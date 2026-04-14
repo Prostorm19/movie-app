@@ -1,0 +1,156 @@
+﻿Total paragraphs: 278
+Total tables: 5
+[60] Style='Normal' | The question of why a system made a particular recommendation ΓÇö explainability ΓÇö has gained prominence alongside growing
+[62] Style='Heading 1' | III. Methodology
+[63] Style='Heading 2' | A. System Architecture
+[64] Style='Normal' | The system follows a layered, service-oriented architecture decomposed into four principal tiers: (1) Data Layer, (2) ML
+[68] Style='Normal' | Fig. 1. System Architecture of the Hybrid Movie Recommendation Engine.
+[70] Style='Normal' | The Data Layer consists of two CSV files ΓÇö movies.csv and ratings.csv ΓÇö loaded and cached by data_loader.py using pandas
+[71] Style='Heading 2' | B. Dataset and Pre-processing
+[72] Style='Normal' | The project dataset is derived from the MovieLens benchmark, a standard corpus in recommender systems research maintaine
+[73] Style='List Paragraph' | movies.csv: Fields ΓÇö movieId (integer primary key), title (string including release year), genres (pipe-delimited genre 
+[74] Style='List Paragraph' | ratings.csv: Fields ΓÇö userId, movieId, rating (0.5ΓÇô5.0 scale in 0.5 increments), timestamp (Unix epoch).
+[75] Style='Normal' | Pre-processing steps applied in data_loader.py include: loading both files into pandas DataFrames with read_csv(), and i
+[78] Style='Heading 2' | C. Collaborative Filtering Module
+[79] Style='Normal' | The CF module constructs a user-movie matrix U Γêê Γä¥^(n_users ├ù n_movies) and computes the movie-movie cosine similarity m
+[80] Style='Normal' | sim_CF(i, j) = (u_i ┬╖ u_j) / (ΓÇûu_iΓÇû ┬╖ ΓÇûu_jΓÇû)
+[81] Style='Normal' | Implemented in compute_collab_similarity() using sklearn.metrics.pairwise.cosine_similarity on the transposed user-movie
+[82] Style='Heading 2' | D. Matrix Factorisation via Truncated SVD
+[83] Style='Normal' | The SVD module applies TruncatedSVD from scikit-learn to the movie-user matrix V = U^T Γêê Γä¥^(n_movies ├ù n_users), decompo
+[84] Style='Normal' | V Γëê U_k ╬ú_k V_k^T
+[85] Style='Normal' | where k = 50 latent components (capped at min(n_movies, n_users) ΓêÆ 1 to satisfy the SVD rank constraint). The fit_transf
+[86] Style='Normal' | sim_SVD(i, j) = (e_i ┬╖ e_j) / (ΓÇûe_iΓÇû ┬╖ ΓÇûe_jΓÇû)
+[87] Style='Normal' | Latent features captured by SVD are interpretable as abstract dimensions of user taste ΓÇö analogous to hidden factors suc
+[88] Style='Heading 2' | E. Content-Based Filtering Module
+[89] Style='Normal' | The CBF module encodes item metadata (genres) into a binary feature matrix G Γêê Γä¥^(n_movies ├ù n_genres) using sklearn.pre
+[90] Style='Normal' | sim_CBF(i, j) = (g_i ┬╖ g_j) / (ΓÇûg_iΓÇû ┬╖ ΓÇûg_jΓÇû)
+[91] Style='Normal' | The CBF module is computationally lightweight and operates entirely on item metadata, making it immune to user-based col
+[92] Style='Heading 2' | F. Hybrid Scoring and Weight Configuration
+[93] Style='Normal' | The final recommendation score for a candidate movie j given a query movie i is computed as a weighted linear combinatio
+[94] Style='Normal' | Score(i, j) = w_CF ┬╖ sim_CF(i,j) + w_SVD ┬╖ sim_SVD(i,j) + w_CBF ┬╖ sim_CBF(i,j)
+[95] Style='Normal' | with default weights w_CF = 0.5, w_SVD = 0.3, w_CBF = 0.2, satisfying the convexity constraint w_CF + w_SVD + w_CBF = 1.
+[96] Style='Normal' | The query movie itself is excluded from its own similarity vector (combined.drop(movie_id)) before sorting. The top-N mo
+[97] Style='Heading 2' | G. Personalised Multi-Movie Recommendations
+[98] Style='Normal' | For users who specify multiple liked movies (PersonalizedRequest payload), the system computes per-type similarity vecto
+[99] Style='Normal' | avg_CF(j) = (1/|L|) ╬ú_{lΓêêL} sim_CF(l, j)
+[100] Style='Normal' | The averaged vectors are then fused using the same hybrid formula. All liked movies are excluded from the candidate set 
+[101] Style='Heading 2' | H. Explainable AI Module
+[102] Style='Normal' | The _build_explanation() function in recommender.py generates a list of string explanations for each recommended movie b
+[103] Style='List Paragraph' | Shared genres: The set intersection of the query and recommendation movie genre sets is computed; each shared genre gene
+[104] Style='List Paragraph' | High collaborative score: If sim_CF(i,j) > 0.3, the explanation 'Highly rated by users who liked {query}' is appended.
+[105] Style='List Paragraph' | High SVD score: If sim_SVD(i,j) > 0.3, the explanation 'Similar viewing pattern in latent features' is appended.
+[106] Style='Normal' | A fallback explanation ('Recommended based on combined similarity analysis') is provided when none of the above threshol
+[107] Style='Heading 2' | I. Evaluation Methodology
+[108] Style='Normal' | The evaluation module (evaluation.py) implements an offline hold-out evaluation protocol:
+[109] Style='List Paragraph' | The full ratings DataFrame is randomly split 80/20 using sklearn's train_test_split (random_state=42).
+[110] Style='List Paragraph' | A user-movie pivot matrix is constructed from the training partition.
+[111] Style='List Paragraph' | TruncatedSVD (k=50) is fitted on the training matrix; the predicted rating matrix P = U_k ╬ú_k V_k^T is reconstructed.
+[112] Style='List Paragraph' | For each (user, movie, rating) triple in the test set that falls within the training matrix dimensions, the predicted ra
+[113] Style='List Paragraph' | RMSE and MAE are computed over all (actual, predicted) pairs.
+[114] Style='List Paragraph' | Precision@10 and Recall@10 are computed per user: relevant items are those with rating ΓëÑ 4.0 in the test set; top-10 ite
+[115] Style='Normal' | RMSE and MAE are defined as:
+[116] Style='Normal' | RMSE = ΓêÜ( (1/n) ╬ú (p_i ΓêÆ r_i)┬▓ )
+[117] Style='Normal' | MAE  = (1/n) ╬ú |p_i ΓêÆ r_i|
+[118] Style='Normal' | where p_i is the predicted rating and r_i is the actual rating. Precision@K and Recall@K are defined as:
+[119] Style='Normal' | Precision@K = |relevant Γê⌐ top-K| / K
+[120] Style='Normal' | Recall@K    = |relevant Γê⌐ top-K| / |relevant|
+[121] Style='Normal' | Results are cached globally in _cached_metrics to avoid repeating the computationally expensive SVD decomposition on eve
+[122] Style='Heading 2' | J. Frontend Architecture
+[123] Style='Normal' | The React frontend is structured as a Vite single-page application with the following component hierarchy:
+[124] Style='List Paragraph' | App.jsx: Root component, route definitions (React Router).
+[125] Style='List Paragraph' | pages/Home.jsx: Landing page with search bar and popular movies carousel.
+[126] Style='List Paragraph' | pages/Recommendations.jsx: Recommendation results page with movie cards, explanation badges, and similarity graph panel.
+[127] Style='List Paragraph' | pages/PersonalizedPage.jsx: Multi-movie preference input form and personalised recommendation results.
+[128] Style='List Paragraph' | pages/Popular.jsx: Top-rated movies dashboard with metrics widget.
+[129] Style='List Paragraph' | components/MovieCard.jsx: Individual movie tile with Wikipedia poster, genre tags, score indicator, and XAI explanation 
+[130] Style='List Paragraph' | components/MovieGraph.jsx: D3.js force-directed graph (via react-force-graph-2d) rendering the similarity network return
+[131] Style='List Paragraph' | components/SearchBar.jsx: Debounced search input querying /movies.
+[132] Style='List Paragraph' | components/Navbar.jsx: Responsive navigation header.
+[133] Style='List Paragraph' | api/api.js: Centralised Axios instance with base URL configuration.
+[135] Style='Heading 1' | IV. Results and Discussion
+[136] Style='Heading 2' | A. Exploratory Data Analysis (EDA)
+[137] Style='Normal' | Prior to model construction, an exploratory analysis was conducted on the dataset to characterise the rating distributio
+[138] Style='Heading 3' | 1. Rating Distribution
+[139] Style='Normal' | The histogram of user ratings reveals a left-skewed distribution with pronounced peaks at integer values (4.0 and 3.0 be
+[142] Style='Normal' | Fig. 2. Distribution of user ratings across the dataset.
+[144] Style='Heading 3' | 2. Genre Distribution
+[145] Style='Normal' | Analysis of the genre frequency reveals that Drama, Comedy, and Thriller are the three most represented genres, collecti
+[148] Style='Normal' | Fig. 3. Top genres by movie count in the dataset.
+[151] Style='Normal' | Fig. 4. Average rating by genre (top genres).
+[153] Style='Heading 3' | 3. Ratings per Movie and per User
+[154] Style='Normal' | The distribution of ratings per movie is heavily right-skewed: a small number of blockbuster titles (e.g., 'The Shawshan
+[155] Style='Normal' | Similarly, the distribution of ratings per user is right-skewed: a cohort of highly active users contributes the majorit
+[158] Style='Normal' | Fig. 5. Distribution of number of ratings per movie (log scale).
+[161] Style='Normal' | Fig. 6. Distribution of number of ratings per user (log scale).
+[163] Style='Heading 3' | 4. Temporal Trends
+[164] Style='Normal' | The monthly ratings volume trend reveals that user engagement exhibits seasonal patterns and a gradual upward slope corr
+[167] Style='Normal' | Fig. 7. Monthly rating volume trend.
+[170] Style='Normal' | Fig. 8. Average rating by release decade.
+[172] Style='Heading 2' | B. Evaluation Metrics
+[173] Style='Normal' | Table 1 presents the quantitative evaluation results obtained from the offline 80/20 hold-out experiment described in Se
+[176] Style='Normal' | Table 1. Evaluation metrics from the offline hold-out experiment. Replace bracketed values with actual numbers from your
+[179] Style='Normal' | Fig. 9. RMSE and MAE from the 80/20 hold-out evaluation.
+[182] Style='Normal' | Fig. 10. Precision@10 and Recall@10 retrieval metrics.
+[184] Style='Normal' | The RMSE and MAE values should be interpreted relative to the 0.5ΓÇô5.0 rating scale (range = 4.5). An RMSE below 1.0 is g
+[186] Style='Normal' | Fig. 11. Rating quality vs. popularity analysis for movies in the dataset.
+[188] Style='Heading 2' | C. Qualitative Analysis of Recommendations
+[189] Style='Normal' | Qualitative inspection of recommendation outputs for well-known seed movies reveals that the hybrid system produces them
+[192] Style='Normal' | Fig. 12. D3.js force-directed similarity graph for a sample query movie.
+[194] Style='Heading 2' | D. Performance and Scalability
+[195] Style='Normal' | Model build time (build_models()) is dominated by the cosine_similarity computation on the full user-movie and movie-use
+[196] Style='Heading 2' | E. Limitations and Challenges
+[197] Style='Normal' | Several limitations and challenges were identified during development and evaluation:
+[198] Style='List Paragraph' | Data Sparsity: The user-movie matrix is highly sparse (estimated <2% occupancy). Sparse rating vectors yield unreliable 
+[199] Style='List Paragraph' | Cold-Start Problem: New users with no rating history cannot benefit from CF or SVD-based recommendations; new movies wit
+[200] Style='List Paragraph' | Static Weight Configuration: The hybrid weights (0.5/0.3/0.2) were set based on domain heuristics and are not optimised 
+[201] Style='List Paragraph' | Rating Scale Compression: The positive rating bias in user-generated ratings compresses the effective scale, limiting th
+[202] Style='List Paragraph' | Absence of Temporal Dynamics: Timestamps in ratings.csv are loaded but not exploited. Recency-weighted collaborative fil
+[203] Style='List Paragraph' | Genre-Only Content Representation: The CBF module encodes only genre metadata. Richer item representations incorporating
+[204] Style='List Paragraph' | Memory Constraints: Storing three full n_movies ├ù n_movies similarity matrices in RAM is infeasible for very large catal
+[206] Style='Heading 1' | V. Conclusion
+[207] Style='Heading 2' | A. Summary of Key Findings
+[208] Style='Normal' | This project has successfully designed, implemented, and evaluated a full-stack Hybrid Movie Recommendation Engine that 
+[209] Style='Normal' | The exploratory data analysis revealed that the dataset exhibits characteristics common to collaborative filtering bench
+[210] Style='Heading 2' | B. Restatement of Objectives and Achievement
+[211] Style='Normal' | All five stated objectives (Section I.B) have been achieved:
+[212] Style='List Paragraph' | The hybrid recommendation engine integrating CF, SVD, and CBF has been fully implemented with configurable weights and t
+[213] Style='List Paragraph' | The FastAPI backend provides RESTful endpoints with LRU-cached recommendation retrieval.
+[214] Style='List Paragraph' | The React frontend supports all specified interactive features including D3 graph visualisation and the metrics dashboar
+[215] Style='List Paragraph' | The XAI module generates natural-language explanations for every recommendation.
+[216] Style='List Paragraph' | Quantitative evaluation using RMSE, MAE, Precision@10, and Recall@10 has been conducted and reported.
+[217] Style='Heading 2' | C. Future Work
+[218] Style='Normal' | Several promising directions for future research and engineering are identified:
+[219] Style='List Paragraph' | Neural Collaborative Filtering (NCF): He et al. [12] proposed replacing the dot-product interaction in matrix factorisat
+[220] Style='List Paragraph' | Graph Neural Network Recommendations: Modelling the user-item interaction graph with Graph Convolutional Networks (GCN) 
+[221] Style='List Paragraph' | Real-time Pipeline with Apache Kafka: Integrating a Kafka message queue between the rating ingestion endpoint and a stre
+[222] Style='List Paragraph' | Contextual and Session-Based Recommendations: Incorporating contextual signals (device type, time of day, location) and 
+[223] Style='List Paragraph' | Advanced Content Representations: Replacing the binary genre encoding with sentence-transformer embeddings of plot synop
+[224] Style='List Paragraph' | A/B Testing and Online Evaluation: Deploying the system with randomised A/B testing infrastructure to measure click-thro
+[226] Style='Heading 1' | References
+[227] Style='Normal' | [1]  Y. Koren, "Collaborative filtering with temporal dynamics," Commun. ACM, vol. 53, no. 4, pp. 89-97, Apr. 2010.
+[229] Style='Normal' | [2]  R. Burke, "Hybrid recommender systems: Survey and experiments," User Model. User-Adapted Interact., vol. 12, no. 4,
+[231] Style='Normal' | [3]  X. Wang, X. He, M. Wang, F. Feng, and T.-S. Chua, "Neural graph collaborative filtering," in Proc. 42nd Int. ACM SI
+[233] Style='Normal' | [4]  D. Goldberg, D. Nichols, B. M. Oki, and D. Terry, "Using collaborative filtering to weave an information tapestry,"
+[235] Style='Normal' | [5]  B. Sarwar, G. Karypis, J. Konstan, and J. Riedl, "Item-based collaborative filtering recommendation algorithms," in
+[237] Style='Normal' | [6]  J. L. Herlocker, J. A. Konstan, A. Borchers, and J. Riedl, "An algorithmic framework for performing collaborative f
+[239] Style='Normal' | [7]  Y. Koren, R. Bell, and C. Volinsky, "Matrix factorization techniques for recommender systems," Computer, vol. 42, n
+[241] Style='Normal' | [8]  S. Funk, "Netflix update: Try this at home," Simon Funk Blog, Dec. 2006. [Online]. Available: https://sifter.org/~s
+[243] Style='Normal' | [9]  M. J. Pazzani and D. Billsus, "Content-based recommendation systems," in The Adaptive Web, P. Brusilovsky, A. Kobsa
+[245] Style='Normal' | [10] M. Balabanovic and Y. Shoham, "Fab: Content-based, collaborative recommendation," Commun. ACM, vol. 40, no. 3, pp. 
+[247] Style='Normal' | [11] N. Tintarev and J. Masthoff, "A survey of explanations in recommender systems," in Proc. 23rd AAAI Conf. Artificial
+[249] Style='Normal' | [12] X. He, L. Liao, H. Zhang, L. Nie, X. Hu, and T.-S. Chua, "Neural collaborative filtering," in Proc. 26th Int. Conf.
+[251] Style='Normal' | [13] X. He, K. Deng, X. Wang, Y. Li, Y. Zhang, and M. Wang, "LightGCN: Simplifying and powering graph convolution networ
+[253] Style='Normal' | [14] F. M. Harper and J. A. Konstan, "The MovieLens datasets: History and context," ACM Trans. Interact. Intell. Syst., 
+[255] Style='Normal' | [15] S. Rendle, C. Freudenthaler, Z. Gantner, and L. Schmidt-Thieme, "BPR: Bayesian personalized ranking from implicit f
+[257] Style='Heading 1' | Appendices
+[258] Style='Heading 2' | Appendix A: Source Code Structure
+[259] Style='Normal' | The complete source code is organised as follows:
+[262] Style='Heading 2' | Appendix B: API Endpoint Reference
+[263] Style='Normal' | Table B.1 documents all RESTful endpoints exposed by the FastAPI backend.
+[266] Style='Heading 2' | Appendix C: Dependencies and Technology Stack
+[267] Style='Normal' | Table C.1 lists the principal libraries and frameworks used in the project.
+[270] Style='Heading 2' | Appendix D: Mathematical Notation Summary
+[271] Style='Normal' | Table D.1 provides a consolidated reference for all mathematical symbols used in this report.
+[274] Style='Heading 2' | Appendix E: Sample Recommendation Output
+[275] Style='Normal' | The following is a representative JSON response from GET /recommend/{movie_title} for illustrative purposes (replace wit
+[277] Style='Normal' | [   {     "movieId": 1196,     "title": "Star Wars: Episode V - The Empire Strikes Back (1980)",     "genres": "Action|A
